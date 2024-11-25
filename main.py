@@ -20,21 +20,17 @@ preprocess.preprocess(input_file, output_file)
 # VECTORIZACIÓN
 vector_input = output_file
 vector_output = 'result/DataI_MD_VECTOR.csv'
-#vectorize(vector_input, vector_output)
+# vectorize(vector_input, vector_output)  # Descomenta si quieres ejecutar esta parte.
 
-
-# LIMPIAR Y DIVIDIR LOS DATOS
-# Leer el archivo vectorizado
+# Limpiar los datos manteniendo las etiquetas
 vector_data = pd.read_csv(vector_output, delimiter="|")
 
-# Guardar las clases (PCM, RS, PU) antes de eliminarlas
+# Guardar las clases en un archivo separado
 df_classes = vector_data[["ID", "PCM", "RS", "PU"]]
 df_classes.to_csv('result/Classes.csv', sep="|", index=False)
 
-# Eliminar columnas innecesarias (PCM, RS, PU, TXT) dejando solo ID y embeddings
-vector_data_cleaned = vector_data.drop(columns=["PCM", "RS", "PU", "TXT"], errors='ignore')
-
-# Guardar archivo limpio
+# Mantener todas las etiquetas en los datos limpios
+vector_data_cleaned = vector_data.drop(columns=["TXT"], errors='ignore')
 cleaned_output = 'result/DataI_MD_VECTOR_CLEAN.csv'
 vector_data_cleaned.to_csv(cleaned_output, sep="|", index=False)
 
