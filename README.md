@@ -7,3 +7,7 @@
 * [tqdm]
 * [scikit-learn]
 * [seaborn]
+
+
+* [imblearn]
+* [umap]

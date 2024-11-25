@@ -1,13 +1,13 @@
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import classification_report, accuracy_score, confusion_matrix, ConfusionMatrixDisplay
+from sklearn.metrics import classification_report, accuracy_score, confusion_matrix, ConfusionMatrixDisplay, precision_recall_curve
 import matplotlib.pyplot as plt
 from imblearn.over_sampling import SMOTE
-from sklearn.decomposition import PCA
+from sklearn.manifold import TSNE
 
 
-class BalancedRandomForest:
+class BalancedRandomForestTSNE:
     def __init__(self, train_file, label_column="RS"):
         self.train_file = train_file
         self.label_column = label_column
@@ -34,6 +34,12 @@ class BalancedRandomForest:
         smote = SMOTE(random_state=42)
         X_train_resampled, y_train_resampled = smote.fit_resample(X_train, y_train)
 
+        # Aplicar t-SNE después de SMOTE
+        print("Aplicando t-SNE para reducir dimensionalidad")
+        tsne = TSNE(n_components=2, random_state=42)  # Reducir a 2 dimensiones
+        X_train_resampled = tsne.fit_transform(X_train_resampled)
+        X_test = tsne.fit_transform(X_test)  # Aplicar también al conjunto de prueba (subóptimo)
+
         return X_train_resampled, X_test, y_train_resampled, y_test
 
     def train_model(self):
@@ -52,9 +58,17 @@ class BalancedRandomForest:
 
     def evaluate_model(self):
         print("Evaluando el modelo...")
-        y_prob = self.rf.predict_proba(self.X_test)[:, 1]  # Probabilidad para la clase 1
-        threshold = 0.6  # Ajustar el umbral
-        y_pred = (y_prob >= threshold).astype(int)
+        # Obtener probabilidades y calcular la curva precision-recall
+        y_prob = self.rf.predict_proba(self.X_test)[:, 1]
+        precision, recall, thresholds = precision_recall_curve(self.y_test, y_prob)
+
+        # Determinar el umbral óptimo basado en F1-score
+        f1_scores = 2 * (precision * recall) / (precision + recall)
+        optimal_threshold = thresholds[f1_scores.argmax()]
+        print(f"Umbral óptimo basado en F1-score: {optimal_threshold}")
+
+        # Aplicar el umbral óptimo
+        y_pred = (y_prob >= optimal_threshold).astype(int)
 
         print("Accuracy:", accuracy_score(self.y_test, y_pred))
         print("Classification Report:\n", classification_report(self.y_test, y_pred))
@@ -68,7 +82,7 @@ class BalancedRandomForest:
 
 # Ejecución
 if __name__ == "__main__":
-    brf = BalancedRandomForest(
+    brf = BalancedRandomForestTSNE(
         train_file="result/VECTOR_train.csv",
         label_column="RS"  # Fijar etiqueta a analizar
     )
