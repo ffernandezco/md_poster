@@ -1,7 +1,22 @@
 import preprocess
 import vectorize
+import subprocess
 import os
 import pandas as pd
+
+def run_script(script_name, args):
+    cmd = ["python", script_name] + args
+    subprocess.run(cmd, check=True)
+
+def collect_metrics(result_dirs):
+    metrics = []
+    for method, path in result_dirs.items():
+        metrics_path = os.path.join(path, "metrics.txt")
+        with open(metrics_path, "r") as f:
+            lines = f.readlines()
+            accuracy = float(lines[0].split(":")[1].strip())
+            metrics.append({"method": method, "accuracy": accuracy})
+    return pd.DataFrame(metrics)
 
 
 # Crear carpetas necesarias (data, result)
@@ -37,8 +52,33 @@ vector_data_cleaned.to_csv(cleaned_output, sep="|", index=False)
 # Dividir en conjunto de entrenamiento y prueba
 train_file = 'result/VECTOR_train.csv'
 test_file = 'result/VECTOR_test.csv'
-preprocess.divide_csv(cleaned_output, train_file, test_file, 0.9, delimiter="|")
+preprocess.divide_csv(cleaned_output, train_file, test_file, 0.85, delimiter="|")
 
+if __name__ == "__main__":
+    os.makedirs("results", exist_ok=True)
+    os.makedirs("results/comparison", exist_ok=True)
+
+    print("Ejecutando reducción dimensional t-SNE...")
+    run_script("rf-tsne.py", [])
+
+    print("Ejecutando reducción dimensional UMAP...")
+    run_script("rf-umap.py", [])
+
+    print("Ejecutando clustering DBSCAN...")
+    run_script("dbscan.py", [])
+
+    print("Ejecutando Random Forest con UMAP...")
+    run_script("rf.py", [])
+
+    print("Comparando métricas...")
+    result_dirs = {
+        "t-SNE": "results/tsne/",
+        "UMAP": "results/umap/",
+        "DBSCAN": "results/dbscan/"
+    }
+    metrics_df = collect_metrics(result_dirs)
+    metrics_df.to_csv("results/comparison/metrics_summary.csv", index=False)
+    print("Métricas guardadas en results/comparison/metrics_summary.csv")
 
 # TOKENIZADO + VECTORIZACIÓN
 #input_csv_path = 'data/DataI_MD_POST.csv'

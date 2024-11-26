@@ -4,15 +4,19 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report, accuracy_score, confusion_matrix, ConfusionMatrixDisplay
 import matplotlib.pyplot as plt
 from imblearn.over_sampling import SMOTE
-from sklearn.decomposition import PCA
+import os
 
 
 class BalancedRandomForest:
-    def __init__(self, train_file, label_column="RS"):
+    def __init__(self, train_file, label_column="RS", results_dir="results"):
         self.train_file = train_file
         self.label_column = label_column
+        self.results_dir = results_dir
         self.rf = None
         self.X_train, self.X_test, self.y_train, self.y_test = None, None, None, None
+
+        # Crear directorio de resultados si no existe
+        os.makedirs(self.results_dir, exist_ok=True)
 
     def load_and_prepare_data(self):
         print("Cargando y preparando los datos...")
@@ -56,21 +60,45 @@ class BalancedRandomForest:
         threshold = 0.6  # Ajustar el umbral
         y_pred = (y_prob >= threshold).astype(int)
 
-        print("Accuracy:", accuracy_score(self.y_test, y_pred))
+        # Calcular métricas
+        accuracy = accuracy_score(self.y_test, y_pred)
+        class_report = classification_report(self.y_test, y_pred, output_dict=True)
+        cm = confusion_matrix(self.y_test, y_pred)
+
+        print(f"Accuracy: {accuracy}")
         print("Classification Report:\n", classification_report(self.y_test, y_pred))
 
-        # Mostrar matriz de confusión
-        cm = confusion_matrix(self.y_test, y_pred)
+        # Guardar métricas en archivos
+        print("Guardando resultados...")
+        metrics_file = os.path.join(self.results_dir, "metrics.txt")
+        cm_file = os.path.join(self.results_dir, "confusion_matrix.png")
+        report_file = os.path.join(self.results_dir, "classification_report.csv")
+
+        # Guardar accuracy y clasificación en texto
+        with open(metrics_file, "w") as f:
+            f.write(f"Accuracy: {accuracy}\n")
+            f.write("Classification Report:\n")
+            f.write(classification_report(self.y_test, y_pred))
+
+        # Guardar matriz de confusión como imagen
         disp = ConfusionMatrixDisplay(confusion_matrix=cm)
         disp.plot()
         plt.title("Matriz de Confusión")
-        plt.show()
+        plt.savefig(cm_file)
+        plt.close()
+
+        # Guardar classification report en CSV
+        report_df = pd.DataFrame(class_report).transpose()
+        report_df.to_csv(report_file, index=True)
+        print("Resultados guardados en:", self.results_dir)
+
 
 # Ejecución
 if __name__ == "__main__":
     brf = BalancedRandomForest(
         train_file="result/VECTOR_train.csv",
-        label_column="RS"  # Fijar etiqueta a analizar
+        label_column="RS",  # Fijar etiqueta a analizar
+        results_dir="results/rf"
     )
     brf.train_model()
     brf.evaluate_model()

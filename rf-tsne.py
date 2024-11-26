@@ -1,4 +1,5 @@
 import pandas as pd
+import os
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report, accuracy_score, confusion_matrix, ConfusionMatrixDisplay, precision_recall_curve
@@ -56,29 +57,30 @@ class BalancedRandomForestTSNE:
         self.rf.fit(self.X_train, self.y_train)
         print("Entrenamiento completado.")
 
-    def evaluate_model(self):
+    def evaluate_model(self, output_dir="results/tsne/"):
+        os.makedirs(output_dir, exist_ok=True)
         print("Evaluando el modelo...")
-        # Obtener probabilidades y calcular la curva precision-recall
         y_prob = self.rf.predict_proba(self.X_test)[:, 1]
         precision, recall, thresholds = precision_recall_curve(self.y_test, y_prob)
-
-        # Determinar el umbral óptimo basado en F1-score
         f1_scores = 2 * (precision * recall) / (precision + recall)
         optimal_threshold = thresholds[f1_scores.argmax()]
         print(f"Umbral óptimo basado en F1-score: {optimal_threshold}")
-
-        # Aplicar el umbral óptimo
         y_pred = (y_prob >= optimal_threshold).astype(int)
 
-        print("Accuracy:", accuracy_score(self.y_test, y_pred))
-        print("Classification Report:\n", classification_report(self.y_test, y_pred))
+        # Guardar resultados
+        report = classification_report(self.y_test, y_pred, output_dict=True)
+        accuracy = accuracy_score(self.y_test, y_pred)
 
-        # Mostrar matriz de confusión
+        with open(os.path.join(output_dir, "metrics.txt"), "w") as f:
+            f.write(f"Accuracy: {accuracy}\n")
+            f.write(f"Classification Report:\n{classification_report(self.y_test, y_pred)}\n")
+
         cm = confusion_matrix(self.y_test, y_pred)
         disp = ConfusionMatrixDisplay(confusion_matrix=cm)
         disp.plot()
         plt.title("Matriz de Confusión")
-        plt.show()
+        plt.savefig(os.path.join(output_dir, "confusion_matrix.png"))
+        plt.close()
 
 # Ejecución
 if __name__ == "__main__":
