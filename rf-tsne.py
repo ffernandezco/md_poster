@@ -2,13 +2,12 @@ import pandas as pd
 import os
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import classification_report, accuracy_score, confusion_matrix, ConfusionMatrixDisplay, precision_recall_curve
-import matplotlib.pyplot as plt
+from sklearn.metrics import classification_report, accuracy_score, confusion_matrix, ConfusionMatrixDisplay
 from imblearn.over_sampling import SMOTE
-from sklearn.manifold import TSNE
+from sklearn.decomposition import PCA
+import matplotlib.pyplot as plt
 
-
-class BalancedRandomForestTSNE:
+class BalancedRandomForest:
     def __init__(self, train_file, label_column="RS"):
         self.train_file = train_file
         self.label_column = label_column
@@ -35,11 +34,11 @@ class BalancedRandomForestTSNE:
         smote = SMOTE(random_state=42)
         X_train_resampled, y_train_resampled = smote.fit_resample(X_train, y_train)
 
-        # Aplicar t-SNE después de SMOTE
-        print("Aplicando t-SNE para reducir dimensionalidad")
-        tsne = TSNE(n_components=2, random_state=42)  # Reducir a 2 dimensiones
-        X_train_resampled = tsne.fit_transform(X_train_resampled)
-        X_test = tsne.fit_transform(X_test)  # Aplicar también al conjunto de prueba (subóptimo)
+        # Aplicar PCA para reducir dimensionalidad (opcional)
+        print("Aplicando PCA para reducir dimensionalidad...")
+        pca = PCA(n_components=10, random_state=42)
+        X_train_resampled = pca.fit_transform(X_train_resampled)
+        X_test = pca.transform(X_test)
 
         return X_train_resampled, X_test, y_train_resampled, y_test
 
@@ -49,23 +48,18 @@ class BalancedRandomForestTSNE:
 
         print("Entrenando el modelo Random Forest...")
         self.rf = RandomForestClassifier(
-            n_estimators=50,  # Reducir para mayor velocidad
-            max_depth=10,  # Limitar profundidad de árboles
+            n_estimators=100,
+            max_depth=20,
             random_state=42,
-            class_weight="balanced"  # Ajustar pesos automáticamente
+            class_weight="balanced"
         )
         self.rf.fit(self.X_train, self.y_train)
         print("Entrenamiento completado.")
 
-    def evaluate_model(self, output_dir="results/tsne/"):
+    def evaluate_model(self, output_dir="results/pca/"):
         os.makedirs(output_dir, exist_ok=True)
         print("Evaluando el modelo...")
-        y_prob = self.rf.predict_proba(self.X_test)[:, 1]
-        precision, recall, thresholds = precision_recall_curve(self.y_test, y_prob)
-        f1_scores = 2 * (precision * recall) / (precision + recall)
-        optimal_threshold = thresholds[f1_scores.argmax()]
-        print(f"Umbral óptimo basado en F1-score: {optimal_threshold}")
-        y_pred = (y_prob >= optimal_threshold).astype(int)
+        y_pred = self.rf.predict(self.X_test)
 
         # Guardar resultados
         report = classification_report(self.y_test, y_pred, output_dict=True)
@@ -75,6 +69,7 @@ class BalancedRandomForestTSNE:
             f.write(f"Accuracy: {accuracy}\n")
             f.write(f"Classification Report:\n{classification_report(self.y_test, y_pred)}\n")
 
+        print("Reporte de clasificación guardado.")
         cm = confusion_matrix(self.y_test, y_pred)
         disp = ConfusionMatrixDisplay(confusion_matrix=cm)
         disp.plot()
@@ -84,9 +79,9 @@ class BalancedRandomForestTSNE:
 
 # Ejecución
 if __name__ == "__main__":
-    brf = BalancedRandomForestTSNE(
+    brf = BalancedRandomForest(
         train_file="result/VECTOR_train.csv",
-        label_column="RS"  # Fijar etiqueta a analizar
+        label_column="RS"
     )
     brf.train_model()
     brf.evaluate_model()
