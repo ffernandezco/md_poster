@@ -23,23 +23,24 @@ def collect_metrics(result_dirs):
                 # Extraer la accuracy de la primera línea
                 accuracy = float(lines[0].split(":")[1].strip())
 
-                # Buscar el F1-score de la clase 1
+                # Buscar el F1-score y Recall de la clase 1
                 f1_score = None
+                recall = None
                 for line in lines:
                     if line.strip().startswith("1"):  # Línea que comienza con la clase 1
                         f1_score = float(line.split()[3])  # F1-score está en la columna 4
+                        recall = float(line.split()[2])  # Recall está en la columna 3
                         break
 
-                if f1_score is None:
-                    raise ValueError(f"F1-score de la clase 1 no encontrado en {metrics_path}")
+                if f1_score is None or recall is None:
+                    raise ValueError(f"F1-score o Recall de la clase 1 no encontrado en {metrics_path}")
 
-                metrics.append({"method": method, "accuracy": accuracy, "f1_score": f1_score})
+                metrics.append({"method": method, "accuracy": accuracy, "f1_score": f1_score, "recall": recall})
         except (IndexError, ValueError, FileNotFoundError) as e:
             print(f"Error procesando {metrics_path}: {e}")
             continue
 
     return pd.DataFrame(metrics)
-
 
 
 def plot_class_distribution(train_file):
@@ -67,17 +68,33 @@ def plot_class_distribution(train_file):
     plt.close()
 
 
-def plot_f1_comparison(metrics_df):
-    plt.figure(figsize=(10, 6))
-    sns.barplot(x="method", y="f1_score", data=metrics_df, ci="sd", palette="viridis")
-    plt.title("F1-Score Comparison (Class 1 - Minoritaria)")
-    plt.xlabel("Method")
-    plt.ylabel("F1-Score")
+def plot_f1_recall_comparison(metrics_df):
+    fig, ax1 = plt.subplots(figsize=(10, 6))
+
+    # Graficar las barras del F1-score
+    sns.barplot(x="method", y="f1_score", data=metrics_df, errorbar='sd', palette="viridis", ax=ax1, label="F1-Score")
+    ax1.set_ylabel("F1-Score", color="blue")
+    ax1.set_xlabel("Método")
+    ax1.tick_params(axis="y", labelcolor="blue")
+
+    # Crear una segunda escala para el recall
+    ax2 = ax1.twinx()
+    ax2.plot(metrics_df["method"], metrics_df["recall"], marker="o", color="red", label="Recall", linewidth=2)
+    ax2.set_ylabel("Recall", color="red")
+    ax2.tick_params(axis="y", labelcolor="red")
+
+    # Personalizar el gráfico
+    plt.title("F1-Score y Recall Comparison (Clase 1 - Minoritaria)")
     plt.xticks(rotation=45)
+
+    # Agregar leyenda
+    ax1.legend(loc="upper left")
+    ax2.legend(loc="upper right")
+
     plt.tight_layout()
 
     os.makedirs("results/comparison", exist_ok=True)
-    plt.savefig("results/comparison/f1_comparison.png")
+    plt.savefig("results/comparison/f1_recall_comparison.png")
     plt.close()
 
 
@@ -140,16 +157,6 @@ if __name__ == "__main__":
     metrics_df.to_csv("results/comparison/metrics_summary.csv", index=False)
 
     print("Generando gráficos...")
-    plot_f1_comparison(metrics_df)
+    plot_f1_recall_comparison(metrics_df)
 
     print("Proceso completado. Gráficos guardados en results/comparison/")
-
-# TOKENIZADO + VECTORIZACIÓN
-#input_csv_path = 'data/DataI_MD_POST.csv'
-#output_csv_path = 'data/DataI_MD_VECTOR.csv'
-# Se puede especificar el modelo (por defecto: AIDA-UPM/BERTuit-base),
-# from_tf (por defecto: True), la columna de procesado del csv de entrada (por defecto: 4)
-# y el batch_size para repartir la carga de trabajo (por defecto: 64)
-#vectorize.vectorize(input_csv_path, output_csv_path, True)
-#preprocess.divide_csv('data/DataI_MD_VECTOR.csv', 'data/VECTOR_BERTuit90%.csv', 'data/VECTOR_test.csv', 0.9)
-#preprocess.divide_csv('data/DataI_MD_POST.csv', 'data/DataI_MD_POST90%.csv', 'data/DataI_MD_POST10%.csv', 0.9, delimiter="|")
