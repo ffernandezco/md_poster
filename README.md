@@ -29,7 +29,7 @@ Partiendo de un conjunto de datos como _DataI_, este proyecto permite realizar u
 El fichero `main.py` incluye la generación automatizada de resultados. Para poderlo generar, se debe contar con un fichero que incluya los embeddings en la ruta `result/DataI_MD_VECTOR.csv`. Tras la ejecución, se creará el directorio `results`, que incluye los resultados tanto utilizando como sin utilizar las técnicas de reducción de dimensionalidad, así como la matriz de confusión asociada. El directorio `results/comparison` permite además comparar todas las métricas obtenidas de forma conjunta, ofreciendo gráficos descriptivos.
 
 ## Generación de vectorizaciones
-En el directorio `vectores` se han incluido algunos vectores ya generados a partir del conjunto de datos. Se puede copiar como `result/DataI_MD_VECTOR.csv` para ejecutar el trabajo de `main.py`. No obstante, si se desea generar un nuevo vector a partir de un modelo personalizado de Hugging Face, puede hacerse copiando en primer lugar en `data/DataI_MD.csv` el fichero original, ejecutando `preprocess.py` y el siguiente comando:
+En el directorio `vectores` (**omitido de la entrega en eGela**) se han incluido algunos vectores ya generados a partir del conjunto de datos. Se puede copiar como `result/DataI_MD_VECTOR.csv` para ejecutar el trabajo de `main.py`. No obstante, si se desea generar un nuevo vector a partir de un modelo personalizado de Hugging Face, puede hacerse copiando en primer lugar en `data/DataI_MD.csv` el fichero original, ejecutando `preprocess.py` y el siguiente comando:
 
 ```bash
 python vectorize.py \
@@ -37,3 +37,7 @@ python vectorize.py \
     --model_name ... \      # Sustituir '...' por el modelo, por ejemplo vinai/bertweet-base
     --output_file result/DataI_MD_VECTOR.csv \
     --device cpu            # Cambiar por CUDA si se tiene gráfica dedicada
+```
+
+## Resultados
+El directorio `resultados` (**omitido en la entrega de eGela**) incluye algunos de los resultados obtenidos según el modelo utilizado.
