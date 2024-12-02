@@ -1,4 +1,4 @@
-# Clustering de textos mediante DBSCAN
+# Clasificación de texto basada en Transformers: comparación de representaciones y reducción de dimensiones
 **Francisco Fernández Condado**
 
 Minería de Datos / Grado en Ingeniería Informática de Gestión y Sistemas de Información
